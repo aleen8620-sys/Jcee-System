@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بطاقة الدخول</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{ --brand:#0d5a92; --bg:#eef3f7; --ink:#0a2c47; --ink3:#7191aa; --line:#d8e5ee; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"IBM Plex Sans Arabic",system-ui,Tahoma,sans-serif;
+       display:flex;flex-direction:column;align-items:center;
+       justify-content:center;min-height:100vh;padding:20px;gap:16px}
+
+  .badge{width:90mm;height:55mm;background:#fff;border-radius:3mm;
+         position:relative;overflow:hidden;display:flex;
+         box-shadow:0 2px 14px rgba(10,44,71,.14)}
+  .band{width:6mm;flex:none;display:grid;place-items:center;background:var(--brand)}
+  .band span{writing-mode:vertical-rl;transform:rotate(180deg);color:#fff;
+             font-size:2.6mm;font-weight:700;letter-spacing:.7mm}
+  .body{flex:1;min-width:0;padding:4mm 4.5mm;display:flex;
+        align-items:center;justify-content:space-between;gap:3mm}
+  .info{min-width:0;flex:1}
+  .ev{font-size:2.6mm;color:#7191aa;letter-spacing:.3mm;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nm{font-size:5.4mm;font-weight:700;line-height:1.15;margin-top:1.4mm;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ti{font-size:3mm;color:#3d6483;margin-top:.9mm;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .co{font-size:3.1mm;font-weight:600;margin-top:.4mm;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cd{font-size:3.4mm;font-weight:600;direction:ltr;letter-spacing:.5mm;
+      margin-top:2.4mm;font-variant-numeric:tabular-nums}
+  .qr{width:22mm;flex:none;display:grid;place-items:center}
+  .qr img,.qr canvas{width:22mm!important;height:22mm!important}
+
+  .tools{display:flex;gap:9px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:11px;
+       padding:11px 20px;font:inherit;font-size:14px;font-weight:600;
+       color:var(--ink);cursor:pointer}
+  .btn.p{background:var(--brand);border-color:var(--brand);color:#fff}
+  .note{font-size:12.5px;color:var(--ink3)}
+
+  @media print{
+    body{background:#fff;padding:0;display:block;min-height:0}
+    .badge{box-shadow:none;margin:0}
+    .tools,.note{display:none}
+    @page{margin:8mm}
+  }
+</style>
+</head>
+<body>
+<div id="out"><div class="note">جارٍ التحميل…</div></div>
+
+<script>
+var SUPA_URL = "https://wozvvtyurxipbejwczwc.supabase.co";
+var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvenZ2dHl1cnhpcGJlandjendjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5MjE1MjksImV4cCI6MjEwODQ5NzUyOX0.A3pdCqtMv2Zf3c13ZLZwi8_XdOId_4EIm6BXKifI-aI";
+
+var sb  = supabase.createClient(SUPA_URL, SUPA_KEY);
+var out = document.getElementById("out");
+
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+var CATS = { visitor:"زائر", exhibitor:"عارض", media:"إعلامي", vip:"كبار الشخصيات" };
+
+(async function(){
+  var code = "";
+  try{ code = new URLSearchParams(location.search).get("code") || ""; }catch(e){}
+  code = code.replace(/\D/g, "");
+
+  if (code.length !== 8){
+    out.innerHTML = '<div class="note">الرمز غير صحيح</div>';
+    return;
+  }
+
+  var r = await sb.rpc("badge_info", { p_code: code });
+  var d = r.data;
+
+  if (r.error || !d || !d.ok){
+    out.innerHTML = '<div class="note">لم يُعثر على هذا الرمز</div>';
+    return;
+  }
+
+  var b     = d.badge || {};
+  var accent = d.ticket_color || d.accent || "#0d5a92";
+  document.documentElement.style.setProperty("--brand", accent);
+
+  var bandText = d.ticket || CATS[d.category] || "زائر";
+
+  out.innerHTML =
+    '<div class="badge">' +
+      '<div class="band"><span>' + esc(bandText) + '</span></div>' +
+      '<div class="body">' +
+        '<div class="info">' +
+          '<div class="ev">' + esc(d.event) + '</div>' +
+          '<div class="nm">' + esc(d.name) + '</div>' +
+          (b.title !== false && d.job_title ? '<div class="ti">' + esc(d.job_title) + '</div>' : '') +
+          (b.company !== false && d.company ? '<div class="co">' + esc(d.company) + '</div>' : '') +
+          (b.show_code !== false ? '<div class="cd">' + esc(d.code) + '</div>' : '') +
+        '</div>' +
+        '<div class="qr" id="qr"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="tools">' +
+      '<button class="btn p" id="pr">طباعة</button>' +
+      '<a class="btn" href="./">تسجيل آخر</a>' +
+    '</div>' +
+    '<div class="note">المقاس 90 × 55 مم — يطابق حوامل الباجات القياسية</div>';
+
+  try{
+    new QRCode(document.getElementById("qr"),
+               { text:String(d.code), width:160, height:160,
+                 correctLevel: QRCode.CorrectLevel.M });
+  }catch(e){}
+
+  document.getElementById("pr").onclick = function(){ window.print(); };
+})();
+</script>
+</body>
+</html>

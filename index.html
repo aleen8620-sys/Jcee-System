@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>تسجيل الزوار</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --brand:#0d5a92; --brand-ink:#fff; --brand-soft:#e4f0fa;
+    --bg:#eef3f7; --panel:#fff; --panel2:#f6fafc;
+    --line:#d8e5ee; --ink:#0a2c47; --ink2:#3d6483; --ink3:#7191aa;
+    --good:#146b4f; --good-soft:#dcf1e7;
+    --bad:#96331f;  --bad-soft:#fbe4dd;
+    --warn:#8a5510; --warn-soft:#fbeedb;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"IBM Plex Sans Arabic",system-ui,Tahoma,sans-serif;
+       font-size:15px;line-height:1.7;-webkit-text-size-adjust:100%}
+  .wrap{max-width:620px;margin-inline:auto;
+        padding-left:max(16px,env(safe-area-inset-left,0px));
+        padding-right:max(16px,env(safe-area-inset-right,0px));
+        padding-block:22px 48px}
+
+  .head{border-radius:16px;overflow:hidden;background:var(--panel);
+        border:1px solid var(--line);margin-bottom:16px}
+  .hbar{background:var(--brand);color:#fff;padding:20px 22px}
+  .hbar img{max-height:46px;display:block;margin-bottom:10px}
+  .hbar h1{margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em}
+  .hbar p{margin:4px 0 0;font-size:13.5px;opacity:.9}
+
+  .card{background:var(--panel);border:1px solid var(--line);
+        border-radius:16px;padding:18px;margin-bottom:14px}
+  h2{margin:0 0 12px;font-size:16px;font-weight:700}
+
+  .tix{display:grid;gap:10px;margin-bottom:6px}
+  .tix button{display:flex;align-items:flex-start;gap:12px;width:100%;
+    text-align:start;background:var(--panel);border:1.5px solid var(--line);
+    border-radius:13px;padding:14px;cursor:pointer;font:inherit;color:inherit}
+  .tix button:hover{border-color:var(--brand)}
+  .tix button[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft)}
+  .tix .dot{width:11px;height:11px;border-radius:4px;margin-top:7px;flex:none}
+  .tix .mid{flex:1;min-width:0}
+  .tix .nm{font-weight:700;font-size:15px}
+  .tix .pk{font-size:12.5px;color:var(--ink3);margin-top:2px}
+  .tix .pr{font-weight:700;font-size:15px;white-space:nowrap;
+           font-variant-numeric:tabular-nums}
+  .tix .left{font-size:11.5px;color:var(--warn);font-weight:600;margin-top:3px}
+  .tix button:disabled{opacity:.5;cursor:not-allowed}
+
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:12px 0 5px}
+  label span{color:var(--ink3);font-weight:500}
+  .inp{width:100%;padding:11px 13px;border:1px solid var(--line);
+       border-radius:11px;background:var(--panel);color:var(--ink);font:inherit;font-size:15px}
+  .inp:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .ph{display:flex;gap:7px}
+  .ph .cc{width:74px;flex:none;display:grid;place-items:center;direction:ltr;
+          background:var(--panel2);border:1px solid var(--line);border-radius:11px;
+          font-weight:600;color:var(--ink2)}
+  .ph input{flex:1;min-width:0;direction:ltr;text-align:right}
+  .hint{font-size:11.5px;color:var(--ink3);margin-top:4px}
+
+  .btn{width:100%;border:0;border-radius:12px;padding:14px;margin-top:18px;
+       background:var(--brand);color:var(--brand-ink);font:inherit;
+       font-size:16px;font-weight:700;cursor:pointer}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.6;cursor:wait}
+
+  .msg{border-radius:11px;padding:12px 14px;font-size:14px;margin-top:14px;
+       border-inline-start:3px solid}
+  .msg.e{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+  .msg.w{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+  .msg.g{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+
+  .done{text-align:center;padding:10px 0}
+  .done .tick{width:58px;height:58px;border-radius:50%;background:var(--good-soft);
+    color:var(--good);display:grid;place-items:center;margin:0 auto 12px}
+  .done h2{font-size:20px;margin-bottom:4px}
+  .done .sub{color:var(--ink3);font-size:13.5px}
+  .codebox{background:var(--panel2);border:1px dashed var(--line);
+    border-radius:13px;padding:16px;margin:16px 0}
+  .codebox .lbl{font-size:11.5px;color:var(--ink3);font-weight:600;letter-spacing:.08em}
+  .code{font-size:33px;font-weight:700;letter-spacing:5px;direction:ltr;
+        margin:4px 0 12px;font-variant-numeric:tabular-nums}
+  #qr{display:flex;justify-content:center}
+  #qr img,#qr canvas{background:#fff;padding:9px;border-radius:10px}
+  .ghost{display:inline-block;margin-top:14px;padding:11px 18px;border:1px solid var(--line);
+    border-radius:11px;color:var(--ink2);text-decoration:none;font-weight:600;font-size:14px}
+  .ghost:hover{border-color:var(--brand);color:var(--ink)}
+
+  .foot{text-align:center;font-size:11.5px;color:var(--ink3);margin-top:18px}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid var(--line);
+    border-top-color:var(--brand);border-radius:50%;animation:sp .7s linear infinite;
+    vertical-align:-3px;margin-inline-end:7px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="card"><span class="spin"></span> جارٍ التحميل…</div>
+</div>
+
+<script>
+// ===================== الإعدادات =====================
+var SUPA_URL = "https://wozvvtyurxipbejwczwc.supabase.co";
+var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvenZ2dHl1cnhpcGJlandjendjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5MjE1MjksImV4cCI6MjEwODQ5NzUyOX0.A3pdCqtMv2Zf3c13ZLZwi8_XdOId_4EIm6BXKifI-aI";
+var DEFAULT_SLUG = "demo-2027";
+// =====================================================
+
+var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+var $  = function(s){ return document.querySelector(s); };
+var app = $("#app");
+
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function qs(k){ try{ return new URLSearchParams(location.search).get(k); }catch(e){ return null; } }
+
+var SLUG = (function(){
+  var q = qs("e");
+  return (q && /^[a-z0-9\-]{2,50}$/i.test(q)) ? q.toLowerCase() : DEFAULT_SLUG;
+})();
+
+var S = { ev:null, pick:null, busy:false, err:"", done:null };
+
+function seatsLeft(n){
+  if (n === 1) return "بقي مقعد واحد";
+  if (n === 2) return "بقي مقعدان";
+  if (n <= 10) return "بقيت " + n + " مقاعد";
+  return "بقي " + n + " مقعداً";
+}
+
+function money(halalas){
+  var r = halalas / 100;
+  return (r % 1 === 0 ? r.toFixed(0) : r.toFixed(2)) + " ريال";
+}
+
+// ---------- العرض ----------
+function headHtml(){
+  var e = S.ev;
+  var logo = e.logo_url
+    ? '<img src="' + esc(e.logo_url) + '" alt="" onerror="this.remove()">' : "";
+  return '<div class="head"><div class="hbar">' + logo +
+         '<h1>' + esc(e.name_ar) + '</h1>' +
+         (e.note_ar ? '<p>' + esc(e.note_ar) + '</p>' : '') +
+         '</div></div>';
+}
+
+function ticketsHtml(){
+  var t = S.ev.tickets || [];
+  if (!t.length) return "";
+  var rows = t.map(function(x){
+    var out = x.remaining !== null && x.remaining !== undefined && x.remaining <= 0;
+    var left = (x.remaining !== null && x.remaining !== undefined && x.remaining > 0 && x.remaining <= 20)
+      ? '<div class="left">' + seatsLeft(x.remaining) + '</div>' : "";
+    return '<button type="button" data-tx="' + esc(x.code) + '"' +
+      ' aria-pressed="' + (S.pick === x.code ? "true" : "false") + '"' +
+      (out ? " disabled" : "") + '>' +
+      '<span class="dot" style="background:' + esc(x.color || "#0d5a92") + '"></span>' +
+      '<span class="mid"><span class="nm">' + esc(x.name_ar) + '</span>' +
+      (x.perks_ar ? '<div class="pk">' + esc(x.perks_ar) + '</div>' : "") +
+      (out ? '<div class="left">نفدت</div>' : left) +
+      '</span>' +
+      '<span class="pr">' + (x.price === 0 ? "مجاناً" : money(x.price)) + '</span>' +
+      '</button>';
+  }).join("");
+  return '<div class="card"><h2>اختر نوع التذكرة</h2><div class="tix">' + rows + '</div></div>';
+}
+
+function formHtml(){
+  return '<div class="card"><h2>بياناتك</h2>' +
+    '<form id="f" autocomplete="on">' +
+    '<label for="nm">الاسم الكامل</label>' +
+    '<input class="inp" id="nm" name="name" required autocomplete="name">' +
+
+    '<label for="phv">رقم الجوال</label>' +
+    '<div class="ph"><span class="cc">+966</span>' +
+    '<input class="inp" id="phv" name="tel" inputmode="numeric" placeholder="5xxxxxxxx"' +
+    ' required autocomplete="tel-national"></div>' +
+    '<div class="hint">يبدأ بـ 5 ويتكوّن من 9 أرقام</div>' +
+
+    '<label for="em">البريد الإلكتروني <span>— يصلك عليه رمز الدخول</span></label>' +
+    '<input class="inp" id="em" name="email" type="email" autocomplete="email">' +
+
+    '<label for="co">جهة العمل <span>(اختياري)</span></label>' +
+    '<input class="inp" id="co" name="organization" autocomplete="organization">' +
+
+    '<label for="jt">المسمى الوظيفي <span>(اختياري)</span></label>' +
+    '<input class="inp" id="jt" name="jobtitle" autocomplete="organization-title">' +
+
+    (S.err ? '<div class="msg e">' + esc(S.err) + '</div>' : "") +
+
+    '<button class="btn" id="go" type="submit">' + submitLabel() + '</button>' +
+    '</form></div>' +
+    '<div class="foot">بتسجيلك توافق على استخدام بياناتك لأغراض تنظيم المعرض</div>';
+}
+
+function submitLabel(){
+  var t = (S.ev.tickets || []).filter(function(x){ return x.code === S.pick; })[0];
+  if (!t || t.price === 0) return "تسجيل وإصدار الرمز";
+  return "المتابعة للدفع · " + money(t.price);
+}
+
+function doneHtml(){
+  var d = S.done;
+  return '<div class="card done">' +
+    '<div class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"' +
+    ' stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 12.5l5.2 5L20 6.5"/></svg></div>' +
+    '<h2>تم تسجيلك</h2>' +
+    '<div class="sub">' + esc(d.name || "") + (d.ticket ? " · " + esc(d.ticket) : "") + '</div>' +
+    '<div class="codebox"><div class="lbl">رمز الدخول</div>' +
+    '<div class="code">' + esc(d.code) + '</div><div id="qr"></div></div>' +
+    '<div class="sub">احفظ لقطة شاشة لهذا الرمز واعرضه عند البوابة</div>' +
+    '<a class="ghost" href="badge.html?code=' + encodeURIComponent(d.code) + '">عرض البطاقة وطباعتها</a>' +
+    '</div>';
+}
+
+function render(){
+  if (!S.ev){ return; }
+  if (!S.ev.ok){
+    app.innerHTML = '<div class="card"><h2>المعرض غير موجود</h2>' +
+      '<div class="hint">تأكد من الرابط الذي وصلك.</div></div>';
+    return;
+  }
+  if (S.done){ app.innerHTML = headHtml() + doneHtml(); drawQR(S.done.code); return; }
+  if (!S.ev.open){
+    app.innerHTML = headHtml() +
+      '<div class="card"><div class="msg w">التسجيل مغلق حالياً لهذا المعرض.</div></div>';
+    return;
+  }
+  app.innerHTML = headHtml() + ticketsHtml() + formHtml();
+  bind();
+}
+
+function drawQR(code){
+  var box = $("#qr");
+  if (!box || typeof QRCode === "undefined") return;
+  box.innerHTML = "";
+  try{ new QRCode(box, { text:String(code), width:168, height:168,
+                         correctLevel: QRCode.CorrectLevel.M }); }catch(e){}
+}
+
+// ---------- التفاعل ----------
+function bind(){
+  document.querySelectorAll("[data-tx]").forEach(function(b){
+    b.addEventListener("click", function(){
+      S.pick = b.getAttribute("data-tx");
+      S.err = "";
+      var f = snapshot();
+      render();
+      restore(f);
+    });
+  });
+  var f = $("#f");
+  if (f) f.addEventListener("submit", submit);
+}
+
+function snapshot(){
+  return { nm:val("#nm"), ph:val("#phv"), em:val("#em"), co:val("#co"), jt:val("#jt") };
+}
+function restore(f){
+  if (!f) return;
+  set("#nm", f.nm); set("#phv", f.ph); set("#em", f.em);
+  set("#co", f.co); set("#jt", f.jt);
+}
+function val(s){ var el = $(s); return el ? el.value : ""; }
+function set(s, v){ var el = $(s); if (el && v) el.value = v; }
+
+var ERRORS = {
+  bad_phone:      "رقم الجوال غير صحيح — يبدأ بـ 5 ويتكوّن من 9 أرقام",
+  bad_name:       "الرجاء إدخال الاسم الكامل",
+  closed:         "التسجيل مغلق حالياً",
+  no_event:       "المعرض غير موجود",
+  no_ticket_type: "اختر نوع التذكرة أولاً",
+  sold_out:       "نفدت تذاكر هذه الفئة",
+  code_fail:      "تعذّر إصدار الرمز، أعد المحاولة",
+  retry:          "حدث خطأ، أعد المحاولة"
+};
+
+async function submit(ev){
+  ev.preventDefault();
+  if (S.busy) return;
+
+  var tickets = S.ev.tickets || [];
+  if (tickets.length && !S.pick){
+    S.err = "اختر نوع التذكرة أولاً";
+    var f0 = snapshot(); render(); restore(f0); return;
+  }
+
+  S.busy = true; S.err = "";
+  var btn = $("#go");
+  if (btn){ btn.disabled = true; btn.textContent = "جارٍ التنفيذ…"; }
+
+  var form = snapshot();
+
+  try{
+    var res, err;
+    if (tickets.length){
+      var r = await sb.rpc("create_order", {
+        p_event_slug: SLUG, p_ticket_code: S.pick,
+        p_name: form.nm, p_phone: form.ph, p_email: form.em,
+        p_company: form.co, p_title: form.jt, p_country: null, p_qty: 1
+      });
+      res = r.data; err = r.error;
+    } else {
+      var r2 = await sb.rpc("register_visitor", {
+        p_event_slug: SLUG, p_name: form.nm, p_phone: form.ph,
+        p_category: "visitor", p_email: form.em,
+        p_company: form.co, p_title: form.jt, p_country: null
+      });
+      res = r2.data; err = r2.error;
+    }
+
+    if (err) throw new Error(err.message);
+
+    if (!res.ok){
+      if (res.error === "duplicate"){
+        S.done = { code: res.code, name: res.name, ticket: "" };
+        S.busy = false; render(); return;
+      }
+      S.err = ERRORS[res.error] || "حدث خطأ، أعد المحاولة";
+      S.busy = false; render(); restore(form); return;
+    }
+
+    // مجانية أو تسجيل بلا تذاكر -> الرمز جاهز
+    if (res.code){
+      S.done = { code: res.code, name: res.name || form.nm, ticket: res.ticket || "" };
+      S.busy = false; render(); return;
+    }
+
+    // مدفوعة -> أنشئ الفاتورة وتوجّه للدفع
+    var pay = await fetch("/api/pay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: res.order_id, slug: SLUG })
+    });
+    var pj = await pay.json();
+    if (!pay.ok || !pj.url) throw new Error(pj.error || "تعذّر فتح صفحة الدفع");
+
+    location.href = pj.url;
+    return;
+
+  }catch(e){
+    S.err = (e && e.message) ? e.message : "تعذّر الاتصال، تحقّق من الإنترنت";
+    S.busy = false; render(); restore(form);
+  }
+}
+
+// ---------- العودة من بوابة الدفع ----------
+async function checkReturn(){
+  var oid = qs("order");
+  if (!oid) return false;
+
+  app.innerHTML = '<div class="card"><span class="spin"></span> جارٍ تأكيد الدفع…</div>';
+
+  for (var i = 0; i < 12; i++){
+    var r = await sb.rpc("order_status", { p_order_id: oid });
+    var d = r.data;
+    if (d && d.ok){
+      if (d.code){
+        S.done = { code: d.code, name: d.name, ticket: "" };
+        return true;
+      }
+      if (d.status === "failed"){
+        S.err = "لم تتم عملية الدفع. يمكنك المحاولة مرة أخرى.";
+        return false;
+      }
+    }
+    await new Promise(function(z){ setTimeout(z, 1500); });
+  }
+  S.err = "تأخر تأكيد الدفع. إن خُصم المبلغ فسيصلك الرمز على بريدك.";
+  return false;
+}
+
+// ---------- الإقلاع ----------
+(async function init(){
+  try{
+    var r = await sb.rpc("event_info", { p_slug: SLUG });
+    if (r.error) throw new Error(r.error.message);
+    S.ev = r.data;
+
+    if (S.ev && S.ev.ok && S.ev.accent){
+      document.documentElement.style.setProperty("--brand", S.ev.accent);
+    }
+    if (S.ev && S.ev.ok && S.ev.name_ar) document.title = S.ev.name_ar;
+
+    var t = (S.ev && S.ev.tickets) || [];
+    if (t.length === 1) S.pick = t[0].code;
+
+    await checkReturn();
+    render();
+  }catch(e){
+    app.innerHTML = '<div class="card"><div class="msg e">تعذّر الاتصال بقاعدة البيانات.<br>' +
+                    esc(e.message || "") + '</div></div>';
+  }
+})();
+</script>
+</body>
+</html>
