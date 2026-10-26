@@ -152,7 +152,16 @@ function loginView(err){
     var b = e.target.querySelector("button");
     b.disabled = true; b.textContent = "جارٍ الدخول…";
     var r = await sb.auth.signInWithPassword({ email:$("#le").value.trim(), password:$("#lp").value });
-    if (r.error){ loginView("البريد أو كلمة المرور غير صحيحة"); return; }
+    if (r.error){
+      var m = r.error.message || "خطأ غير معروف";
+      var st = r.error.status ? (" [" + r.error.status + "]") : "";
+      if (/invalid login credentials/i.test(m))      m = "البريد أو كلمة المرور غير صحيحة";
+      else if (/email not confirmed/i.test(m))       m = "البريد غير مُفعّل";
+      else if (/database error/i.test(m))            m = "خطأ في قاعدة البيانات — صفّ المستخدم ناقص";
+      else if (/failed to fetch|network/i.test(m))   m = "تعذّر الاتصال بالخادم";
+      loginView(m + st + "  ·  " + (r.error.message || ""));
+      return;
+    }
     boot();
   });
 }
