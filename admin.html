@@ -158,7 +158,7 @@ main{min-width:0;display:flex;flex-direction:column}
 .tile .s{font-size:11.5px;color:var(--ink-3)}
 .btn{border:0;border-radius:11px;padding:10px 16px;font-weight:600;font-size:14px;
      background:var(--brand);color:var(--brand-ink);display:inline-flex;align-items:center;
-     gap:8px;justify-content:center;text-decoration:none}
+     gap:8px;justify-content:center;text-decoration:none;white-space:nowrap}
 .btn:hover{filter:brightness(1.08)}
 .btn.w{width:100%}
 .btn.ghost{background:var(--panel);color:var(--ink-2);border:1px solid var(--line)}
@@ -241,8 +241,13 @@ var $   = function(s){ return document.querySelector(s); };
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function money(h){ var r=(h||0)/100; return (r%1===0?r.toFixed(0):r.toFixed(2)); }
-function dt(s){ if(!s) return "—"; try{ return new Date(s).toLocaleString("ar-SA",
+// ar-SA وحدها تعرض التاريخ هجرياً، وتواريخ المعارض ميلادية
+var LOC = "ar-SA-u-ca-gregory-nu-latn";
+function dt(s){ if(!s) return "—"; try{ return new Date(s).toLocaleString(LOC,
   {dateStyle:"short",timeStyle:"short"}); }catch(e){ return s; } }
+function dte(s, style){ if(!s) return ""; try{
+  return new Date(s).toLocaleDateString(LOC, {dateStyle: style||"long"});
+}catch(e){ return s; } }
 function initials(n){
   var w = String(n||"?").trim().split(/\s+/)[0] || "?";
   // العربية تتصل ببعضها، فحرف واحد أوضح من حرفين منفصلين
@@ -266,17 +271,25 @@ var I = {
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>',
   moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.6 8.6 0 0 1 9.5 3.5a8.8 8.8 0 1 0 11 11Z"/></svg>',
   csv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11.5 12 15.5l4-4"/><path d="M4 17.5v1.8A1.7 1.7 0 0 0 5.7 21h12.6a1.7 1.7 0 0 0 1.7-1.7v-1.8"/></svg>',
+  overview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 11.2 12 4l8.6 7.2"/><path d="M5.6 10v9.4a1.2 1.2 0 0 0 1.2 1.2h10.4a1.2 1.2 0 0 0 1.2-1.2V10"/></svg>',
+  form:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.2 12h17.6M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>',
+  badge:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.2"/><circle cx="8.6" cy="11" r="2"/><path d="M5.4 16.4c.6-1.7 1.8-2.5 3.2-2.5s2.6.8 3.2 2.5M14.6 10h4M14.6 13.4h4"/></svg>',
+  save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.8h10.4L20.2 8.6V19a1.6 1.6 0 0 1-1.6 1.6H5A1.6 1.6 0 0 1 3.4 19V5.4A1.6 1.6 0 0 1 5 3.8Z"/><path d="M7.6 3.8v5.4h7.2V3.8M7.6 20.6v-5.8h8.8v5.8"/></svg>',
   mark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="4.6" width="17.6" height="14.8" rx="2.4"/><circle cx="9" cy="11" r="2.2"/><path d="M5.6 17c.7-1.9 2-2.8 3.4-2.8s2.7.9 3.4 2.8M15 9.6h3.2M15 12.4h3.2"/></svg>'
 };
 
-var S = { me:null, staff:null, events:[], ev:null, tab:"gate", msg:"", err:"", drawer:false };
+var S = { me:null, staff:null, events:[], ev:null, tab:"overview",
+          msg:"", err:"", drawer:false, cfg:null };
 
 var TABS = [
+  {k:"overview",t:"نظرة عامة",    g:"التشغيل", h:"حركة اليوم في لمحة"},
   {k:"gate",    t:"البوابة",      g:"التشغيل", h:"تسجيل دخول الزوار بالرمز"},
   {k:"list",    t:"الزوار",       g:"التشغيل", h:"قائمة المسجّلين والبحث والتصدير"},
   {k:"quick",   t:"تسجيل سريع",   g:"التشغيل", h:"تسجيل زائر عند الكاونتر"},
   {k:"rep",     t:"التقارير",     g:"المتابعة", h:"الحضور والمبيعات وساعات الذروة"},
+  {k:"form",    t:"نموذج التسجيل",g:"الإعداد", h:"الحقول واللغات والمرافقون", admin:true},
   {k:"tickets", t:"التذاكر",      g:"الإعداد", h:"فئات التذاكر والأسعار والسعة", admin:true},
+  {k:"badge",   t:"الباج",        g:"الإعداد", h:"شكل بطاقة الدخول المطبوعة", admin:true},
   {k:"events",  t:"المعارض",      g:"الإعداد", h:"إنشاء المعارض وروابط التسجيل", admin:true},
   {k:"staff",   t:"الموظفون",     g:"الإعداد", h:"الحسابات والصلاحيات", owner:true}
 ];
@@ -398,7 +411,7 @@ function shell(inner){
     b.onclick = async function(){ await sb.auth.signOut(); location.reload(); };
   });
   document.querySelectorAll("#evsel").forEach(function(sel){
-    sel.onchange = function(){ S.ev = sel.value; S.msg=""; S.err=""; S.drawer=false; route(); };
+    sel.onchange = function(){ S.ev = sel.value; S.cfg=null; S.msg=""; S.err=""; S.drawer=false; route(); };
   });
   var t1=$("#thm"), t2=$("#thm2");
   if (t1) t1.onclick = toggleTheme;
@@ -613,6 +626,325 @@ async function repView(){
       hRows+'</table></div></div></div>' : ''));
 }
 
+// ===================== نظرة عامة =====================
+async function overviewView(){
+  loading();
+  var ev = curEvent(); if (!ev) return noEvent();
+
+  var r = await sb.rpc("event_overview", { p_slug: S.ev });
+  var d = r.data || {};
+  if (!d.ok){
+    shell('<div class="card"><div class="empty">' +
+      (d.error==="no_event" ? "المعرض غير موجود" : "تعذّر تحميل البيانات") + '</div></div>');
+    return;
+  }
+
+  var st = d.stats || {}, sl = d.sales || {};
+  var pct = st.registered ? Math.round(st.attended*100/st.registered) : 0;
+
+  var when = "";
+  if (d.starts_on){
+    when = dte(d.starts_on);
+    if (d.ends_on && d.ends_on !== d.starts_on) when += " — " + dte(d.ends_on);
+  }
+
+  var hrs = d.hourly || [];
+  var hMax = hrs.reduce(function(m,x){ return Math.max(m, x.n); }, 0);
+  var bars = hrs.map(function(x){
+    var h = hMax ? Math.round(x.n*100/hMax) : 0;
+    return '<div style="display:grid;gap:5px;justify-items:center;min-width:34px">' +
+      '<div style="height:92px;display:flex;align-items:flex-end">' +
+      '<span style="display:block;width:16px;border-radius:5px 5px 0 0;background:var(--brand);' +
+      'height:'+Math.max(h,3)+'%"></span></div>' +
+      '<div class="mono" style="font-size:10.5px;color:var(--ink-3)">'+
+      String(x.h).padStart(2,"0")+'</div>' +
+      '<div class="num" style="font-size:12px;font-weight:600">'+x.n+'</div></div>';
+  }).join("");
+
+  var latest = (d.latest||[]).map(function(v){
+    return '<tr><td><b>'+esc(v.name)+'</b></td>' +
+      '<td>'+esc(v.company||"—")+'</td>' +
+      '<td><span class="chip n">'+esc(CATS[v.category]||v.category)+'</span></td>' +
+      '<td class="mono">'+dt(v.checked_in_at)+'</td></tr>';
+  }).join("");
+
+  shell(
+    '<div class="card"><div class="bd">' +
+      '<div style="font-size:11.5px;font-weight:600;letter-spacing:.09em;color:var(--brand)">' +
+        'أهلاً ' + esc((S.staff.full_name||"").split(/\s+/)[0] || "") + '</div>' +
+      '<div style="font-size:25px;font-weight:700;letter-spacing:-.02em;margin-top:2px">' +
+        esc(d.name||"") + '</div>' +
+      '<div style="font-size:13px;color:var(--ink-3)">' +
+        esc([d.venue, when].filter(Boolean).join(" · ") || "لم تُضبط بيانات المكان والتاريخ بعد") +
+      '</div></div></div>' +
+
+    '<div class="tiles">' +
+      '<div class="tile"><div class="k">المسجّلون</div><div class="v">'+(st.registered||0)+'</div>' +
+        '<div class="s">منهم '+(st.today||0)+' اليوم</div></div>' +
+      '<div class="tile"><div class="k">دخلوا البوابة</div><div class="v">'+(st.attended||0)+'</div>' +
+        '<div class="s">'+pct+'% من المسجّلين</div></div>' +
+      '<div class="tile"><div class="k">سجّلوا في الموقع</div><div class="v">'+(st.onsite||0)+'</div>' +
+        '<div class="s">عند الكاونتر</div></div>' +
+      '<div class="tile"><div class="k">الإيراد</div><div class="v">'+money(sl.revenue)+'</div>' +
+        '<div class="s">ريال · '+(sl.tickets||0)+' تذكرة</div></div>' +
+    '</div>' +
+
+    (bars ? '<div class="card"><div class="hd"><h2>حركة الدخول بالساعة</h2></div>' +
+      '<div class="bd"><div class="scroll"><div style="display:flex;gap:10px;align-items:flex-end">' +
+      bars + '</div></div></div></div>' : '') +
+
+    '<div class="card"><div class="hd"><h2>آخر من دخل</h2>' +
+      '<span class="end"><button class="iconbtn" id="rfr">تحديث</button></span></div><div class="bd">' +
+      (latest ? '<div class="scroll"><table><tr><th>الاسم</th><th>الجهة</th>' +
+        '<th>الفئة</th><th>وقت الدخول</th></tr>'+latest+'</table></div>'
+        : '<div class="empty">لم يدخل أحد بعد</div>') + '</div></div>');
+
+  var rf = $("#rfr"); if (rf) rf.onclick = overviewView;
+}
+
+// ===================== إعدادات مشتركة =====================
+async function loadCfg(force){
+  if (S.cfg && S.cfg.slug === S.ev && !force) return S.cfg;
+  var r = await sb.rpc("event_cfg", { p_slug: S.ev });
+  var d = r.data || {};
+  S.cfg = (d.ok && d.event) ? d.event : null;
+  return S.cfg;
+}
+async function saveCfg(key, val){
+  var r = await sb.rpc("save_event_cfg", { p_slug:S.ev, p_key:key, p_val:val });
+  var d = r.data || {};
+  if (d.ok){ S.msg = "حُفظ"; S.cfg = null; }
+  else S.err = d.error==="forbidden" ? "لا تملك صلاحية" : "تعذّر الحفظ";
+  return d.ok;
+}
+
+// ===================== نموذج التسجيل =====================
+var FIELDS = [
+  {k:"email",     t:"البريد الإلكتروني"},
+  {k:"company",   t:"جهة العمل"},
+  {k:"job_title", t:"المسمى الوظيفي"},
+  {k:"country",   t:"الدولة"}
+];
+var LANGS = [["ar","العربية"],["en","English"],["fr","Français"],
+             ["ur","اردو"],["hi","हिन्दी"],["zh","中文"]];
+
+async function formView(){
+  loading();
+  var ev = curEvent(); if (!ev) return noEvent();
+  var c = await loadCfg();
+  if (!c) return shell('<div class="card"><div class="empty">تعذّر تحميل الإعدادات</div></div>');
+
+  var f  = c.form_cfg || {};
+  var fl = f.fields || {};
+  var langs = f.langs || ["ar"];
+  var comp  = f.companions || {on:false,max:3};
+  var link  = location.origin + "/?e=" + encodeURIComponent(c.slug);
+
+  var rows = FIELDS.map(function(x){
+    var s = fl[x.k] || {on:false,req:false};
+    return '<tr><td><b>'+esc(x.t)+'</b></td>' +
+      '<td><label class="check"><input type="checkbox" data-fon="'+x.k+'"'+(s.on?" checked":"")+
+        '> يظهر</label></td>' +
+      '<td><label class="check"><input type="checkbox" data-freq="'+x.k+'"'+(s.req?" checked":"")+
+        (s.on?"":" disabled")+'> إلزامي</label></td></tr>';
+  }).join("");
+
+  var chips = LANGS.map(function(l){
+    var on = langs.indexOf(l[0]) >= 0;
+    return '<button type="button" class="chip '+(on?"b":"n")+'" data-lang="'+l[0]+'" '+
+      'style="cursor:pointer;border:1px solid '+(on?"transparent":"var(--line)")+';padding:6px 13px">'+
+      esc(l[1])+'</button>';
+  }).join("");
+
+  // معاينة
+  var prev = '<div style="max-width:320px;margin:0 auto;background:var(--panel);' +
+    'border:1px solid var(--line);border-radius:20px;overflow:hidden">' +
+    '<div style="padding:16px;background:'+esc(c.accent||"#0d5a92")+';color:#fff">' +
+      '<div style="font-size:15px;font-weight:700">'+esc(c.name_ar)+'</div>' +
+      '<div style="font-size:11.5px;opacity:.85">'+esc(c.note_ar||"سجّل بياناتك")+'</div></div>' +
+    '<div style="padding:14px;display:grid;gap:9px">' +
+      pf("الاسم الكامل", true) + pf("رقم الجوال", true) +
+      FIELDS.filter(function(x){ return (fl[x.k]||{}).on; })
+            .map(function(x){ return pf(x.t, (fl[x.k]||{}).req); }).join("") +
+      (comp.on ? pf("عدد المرافقين (حتى "+comp.max+")", false) : "") +
+      '<div style="font-size:10.5px;color:var(--ink-3);line-height:1.6">☐ ' +
+        esc(f.consent_ar||"") + '</div>' +
+      '<div style="background:'+esc(c.accent||"#0d5a92")+';color:#fff;border-radius:10px;' +
+        'padding:10px;text-align:center;font-size:13px;font-weight:600">تسجيل</div>' +
+    '</div></div>';
+
+  shell(
+    '<div class="card"><div class="hd"><h2>حقول النموذج</h2>' +
+      '<span class="sub">الاسم والجوال إلزاميان دائماً</span></div><div class="bd">' +
+      '<div class="scroll"><table><tr><th>الحقل</th><th>الظهور</th><th>الإلزام</th></tr>' +
+      rows + '</table></div></div></div>' +
+
+    '<div class="card"><div class="hd"><h2>لغات النموذج</h2>' +
+      '<span class="sub">الزائر يختار لغته من أعلى الصفحة</span></div><div class="bd">' +
+      '<div class="rowline">'+chips+'</div></div></div>' +
+
+    '<div class="card"><div class="hd"><h2>المرافقون</h2></div><div class="bd">' +
+      '<label class="check"><input type="checkbox" id="c_on"'+(comp.on?" checked":"")+
+        '> السماح بتسجيل مرافقين</label>' +
+      '<div style="max-width:220px"><label class="lbl" for="c_max">الحد الأعلى لكل زائر</label>' +
+      '<input class="inp" id="c_max" type="number" min="1" max="10" value="'+(comp.max||3)+'"></div>' +
+      '<div class="note b">كل مرافق يحصل على رمز دخول مستقل، بلا رقم جوال.</div>' +
+      '</div></div>' +
+
+    '<div class="card"><div class="hd"><h2>نص الموافقة</h2></div><div class="bd">' +
+      '<div><label class="lbl" for="cs_ar">بالعربية</label>' +
+      '<input class="inp" id="cs_ar" value="'+esc(f.consent_ar||"")+'"></div>' +
+      '<div><label class="lbl" for="cs_en">بالإنجليزية</label>' +
+      '<input class="inp" id="cs_en" dir="ltr" value="'+esc(f.consent_en||"")+'"></div>' +
+      '<div><button class="btn" id="fsave">'+I.save+' حفظ الإعدادات</button></div>' +
+      '</div></div>' +
+
+    '<div class="card"><div class="hd"><h2>المعاينة</h2>' +
+      '<span class="sub">هكذا يراه الزائر</span></div>' +
+      '<div class="bd" style="background:var(--panel-2)">' + prev +
+      '<div class="note b" style="margin-top:14px">رابط التسجيل<br>' +
+      '<span class="mono">'+esc(link)+'</span></div>' +
+      '<a class="btn ghost w" href="'+esc(link)+'" target="_blank">افتح الصفحة الحقيقية</a>' +
+      '</div></div>');
+
+  // إظهار/إخفاء يتحكّم في الإلزام
+  document.querySelectorAll("[data-fon]").forEach(function(b){
+    b.onchange = function(){
+      var req = document.querySelector('[data-freq="'+b.getAttribute("data-fon")+'"]');
+      req.disabled = !b.checked;
+      if (!b.checked) req.checked = false;
+    };
+  });
+  document.querySelectorAll("[data-lang]").forEach(function(b){
+    b.onclick = function(){
+      var k = b.getAttribute("data-lang");
+      var i = langs.indexOf(k);
+      if (i >= 0){ if (langs.length > 1) langs.splice(i,1); }
+      else langs.push(k);
+      b.className = "chip " + (langs.indexOf(k)>=0 ? "b" : "n");
+      b.style.border = "1px solid " + (langs.indexOf(k)>=0 ? "transparent" : "var(--line)");
+    };
+  });
+
+  $("#fsave").onclick = async function(){
+    var nf = {};
+    FIELDS.forEach(function(x){
+      nf[x.k] = {
+        on:  document.querySelector('[data-fon="'+x.k+'"]').checked,
+        req: document.querySelector('[data-freq="'+x.k+'"]').checked
+      };
+    });
+    var ok = await saveCfg("form_cfg", {
+      langs: langs,
+      fields: nf,
+      companions: { on: $("#c_on").checked,
+                    max: Math.min(10, Math.max(1, parseInt($("#c_max").value||"3",10))) },
+      consent_ar: $("#cs_ar").value.trim(),
+      consent_en: $("#cs_en").value.trim()
+    });
+    if (ok) formView(); else shell('<div class="card"><div class="empty">—</div></div>');
+  };
+}
+function pf(label, req){
+  return '<div><div style="font-size:10.5px;font-weight:600;color:var(--ink-2);margin-bottom:3px">' +
+    esc(label) + (req?' <span style="color:var(--danger)">*</span>':'') + '</div>' +
+    '<div style="height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)"></div></div>';
+}
+
+// ===================== مصمّم الباج =====================
+async function badgeView(){
+  loading();
+  var ev = curEvent(); if (!ev) return noEvent();
+  var c = await loadCfg();
+  if (!c) return shell('<div class="card"><div class="empty">تعذّر تحميل الإعدادات</div></div>');
+
+  var b = c.badge || {};
+  var show = function(k){ return b[k] !== false; };
+  var accent = b.color || c.accent || "#0d5a92";
+
+  function demo(name, org, job, cat, color){
+    return '<div style="width:270px;height:165px;background:#fff;border-radius:9px;display:flex;' +
+      'overflow:hidden;box-shadow:0 2px 14px rgba(10,44,71,.18);flex:none">' +
+      '<div style="width:18px;background:'+esc(color)+';display:grid;place-items:center">' +
+      '<span style="writing-mode:vertical-rl;transform:rotate(180deg);color:#fff;font-size:8px;' +
+      'font-weight:700;letter-spacing:2px">'+esc(cat)+'</span></div>' +
+      '<div style="flex:1;min-width:0;padding:12px 13px;display:flex;align-items:center;' +
+      'justify-content:space-between;gap:9px">' +
+      '<div style="min-width:0;flex:1;color:#0a2c47">' +
+        '<div style="font-size:8px;color:#7191aa">'+esc(c.name_ar)+'</div>' +
+        '<div style="font-size:16px;font-weight:700;margin-top:4px;white-space:nowrap;' +
+          'overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div>' +
+        (show("title")   ? '<div style="font-size:9px;color:#3d6483;margin-top:3px">'+esc(job)+'</div>' : '') +
+        (show("company") ? '<div style="font-size:9.5px;font-weight:600;margin-top:1px">'+esc(org)+'</div>' : '') +
+        (show("show_code")? '<div style="font-family:monospace;font-size:10px;font-weight:600;' +
+          'margin-top:7px;direction:ltr">1234 5678</div>' : '') +
+      '</div>' +
+      '<div style="width:66px;height:66px;background:#0a2c47;border-radius:4px;flex:none;' +
+        'display:grid;place-items:center;color:#fff;font-size:8px">QR</div>' +
+      '</div></div>';
+  }
+
+  var sw = ["#0d5a92","#146b4f","#8a6410","#96331f","#8c3f86","#0a2c47"].map(function(x){
+    return '<button type="button" data-bc="'+x+'" style="width:34px;height:34px;border-radius:10px;' +
+      'background:'+x+';border:3px solid '+(accent.toLowerCase()===x?"var(--ink)":"transparent")+
+      ';cursor:pointer"></button>';
+  }).join("");
+
+  shell(
+    '<div class="card"><div class="hd"><h2>المعاينة</h2>' +
+      '<span class="sub">المقاس الحقيقي ٩٠ × ٥٥ مم</span></div>' +
+      '<div class="bd" style="background:var(--panel-2)">' +
+      '<div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center">' +
+      demo("خالد عبدالله الزهراني","غرفة جدة","منسّق التنظيم","زائر", accent) +
+      demo("معالي د. سعد المالكي","وزارة التجارة","وكيل الوزارة","VIP", "#8a6410") +
+      '</div></div></div>' +
+
+    '<div class="card"><div class="hd"><h2>الحقول الظاهرة</h2></div><div class="bd">' +
+      '<label class="check"><input type="checkbox" id="b_job"'+(show("title")?" checked":"")+
+        '> المسمى الوظيفي</label>' +
+      '<label class="check"><input type="checkbox" id="b_co"'+(show("company")?" checked":"")+
+        '> جهة العمل</label>' +
+      '<label class="check"><input type="checkbox" id="b_cd"'+(show("show_code")?" checked":"")+
+        '> الرمز الرقمي بجانب الـ QR</label>' +
+      '<div class="note b">الاسم ورمز QR يظهران دائماً — بدونهما الباج بلا فائدة عند البوابة.</div>' +
+      '</div></div>' +
+
+    '<div class="card"><div class="hd"><h2>لون الشريط</h2>' +
+      '<span class="sub">فئات التذاكر تستخدم ألوانها الخاصة إن حُدّدت</span></div><div class="bd">' +
+      '<div class="rowline">'+sw+
+      '<input class="inp" id="b_col" type="color" value="'+esc(accent)+'" style="width:64px"></div>' +
+      '<div><button class="btn" id="bsave">'+I.save+' حفظ شكل الباج</button></div>' +
+      '</div></div>');
+
+  document.querySelectorAll("[data-bc]").forEach(function(x){
+    x.onclick = function(){ $("#b_col").value = x.getAttribute("data-bc"); badgePreviewColor(); };
+  });
+  $("#b_col").oninput = badgePreviewColor;
+  ["#b_job","#b_co","#b_cd"].forEach(function(id){ $(id).onchange = badgePreviewColor; });
+
+  $("#bsave").onclick = async function(){
+    var ok = await saveCfg("badge", {
+      title:     $("#b_job").checked,
+      company:   $("#b_co").checked,
+      show_code: $("#b_cd").checked,
+      color:     $("#b_col").value
+    });
+    if (ok) badgeView();
+  };
+}
+// يعيد الرسم فوراً حتى يرى التغيير قبل الحفظ
+function badgePreviewColor(){
+  var b = S.cfg ? (S.cfg.badge || {}) : {};
+  S.cfg.badge = {
+    title:     $("#b_job").checked,
+    company:   $("#b_co").checked,
+    show_code: $("#b_cd").checked,
+    color:     $("#b_col").value
+  };
+  var keep = S.cfg;
+  badgeView().then(function(){ S.cfg = keep; });
+}
+
 // ===================== التذاكر =====================
 var editTx = null;
 async function ticketsView(){
@@ -825,6 +1157,9 @@ async function staffView(){
 
 // ===================== التوجيه =====================
 function route(){
+  if (S.tab==="overview") return overviewView();
+  if (S.tab==="form")    return isAdmin() ? formView()  : gateView(null);
+  if (S.tab==="badge")   return isAdmin() ? badgeView() : gateView(null);
   if (S.tab==="list")    return listView();
   if (S.tab==="quick")   return quickView();
   if (S.tab==="rep")     return repView();
