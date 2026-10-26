@@ -174,7 +174,55 @@ function ticketsHtml(){
   return '<div class="card"><h2>اختر نوع التذكرة</h2><div class="tix">' + rows + '</div></div>';
 }
 
+// إعدادات النموذج كما ضبطها المنظّم من لوحة الإدارة
+function fcfg(){ return (S.ev && S.ev.form) || {}; }
+function fld(k){
+  var f = (fcfg().fields || {})[k];
+  return f || { on: k !== "country", req: false };   // الافتراضي قبل الضبط
+}
+function optTag(k){
+  var f = fld(k);
+  return f.req ? "" : ' <span>(اختياري)</span>';
+}
+
 function formHtml(){
+  var f = fcfg();
+  var comp = f.companions || { on:false, max:3 };
+  var consent = f.consent_ar || "بتسجيلك توافق على استخدام بياناتك لأغراض تنظيم المعرض";
+
+  var extra = "";
+  if (fld("email").on)
+    extra += '<label for="em">البريد الإلكتروني' +
+      (fld("email").req ? ' <span>— يصلك عليه رمز الدخول</span>' : optTag("email")) + '</label>' +
+      '<input class="inp" id="em" name="email" type="email" autocomplete="email"' +
+      (fld("email").req ? " required" : "") + '>';
+
+  if (fld("company").on)
+    extra += '<label for="co">جهة العمل' + optTag("company") + '</label>' +
+      '<input class="inp" id="co" name="organization" autocomplete="organization"' +
+      (fld("company").req ? " required" : "") + '>';
+
+  if (fld("job_title").on)
+    extra += '<label for="jt">المسمى الوظيفي' + optTag("job_title") + '</label>' +
+      '<input class="inp" id="jt" name="jobtitle" autocomplete="organization-title"' +
+      (fld("job_title").req ? " required" : "") + '>';
+
+  if (fld("country").on)
+    extra += '<label for="cn">الدولة' + optTag("country") + '</label>' +
+      '<input class="inp" id="cn" name="country" autocomplete="country-name"' +
+      (fld("country").req ? " required" : "") + '>';
+
+  var cmp = "";
+  if (comp.on){
+    var opts = "";
+    for (var i = 0; i <= (comp.max || 3); i++)
+      opts += '<option value="'+i+'">' + (i === 0 ? "بدون مرافقين" : i) + '</option>';
+    cmp = '<label for="cp">عدد المرافقين</label>' +
+      '<select class="inp" id="cp">' + opts + '</select>' +
+      '<div class="hint">لكل مرافق رمز دخول خاص به — الاسم يكفي</div>' +
+      '<div id="cpn"></div>';
+  }
+
   return '<div class="card"><h2>بياناتك</h2>' +
     '<form id="f" autocomplete="on">' +
     '<label for="nm">الاسم الكامل</label>' +
@@ -186,20 +234,26 @@ function formHtml(){
     ' required autocomplete="tel-national"></div>' +
     '<div class="hint">يبدأ بـ 5 ويتكوّن من 9 أرقام</div>' +
 
-    '<label for="em">البريد الإلكتروني <span>— يصلك عليه رمز الدخول</span></label>' +
-    '<input class="inp" id="em" name="email" type="email" autocomplete="email">' +
-
-    '<label for="co">جهة العمل <span>(اختياري)</span></label>' +
-    '<input class="inp" id="co" name="organization" autocomplete="organization">' +
-
-    '<label for="jt">المسمى الوظيفي <span>(اختياري)</span></label>' +
-    '<input class="inp" id="jt" name="jobtitle" autocomplete="organization-title">' +
+    extra + cmp +
 
     (S.err ? '<div class="msg e">' + esc(S.err) + '</div>' : "") +
 
     '<button class="btn" id="go" type="submit">' + submitLabel() + '</button>' +
     '</form></div>' +
-    '<div class="foot">بتسجيلك توافق على استخدام بياناتك لأغراض تنظيم المعرض</div>';
+    '<div class="foot">' + esc(consent) + '</div>';
+}
+
+// خانات أسماء المرافقين تظهر بحسب العدد المختار
+function wireCompanions(){
+  var sel = document.getElementById("cp");
+  if (!sel) return;
+  sel.onchange = function(){
+    var n = parseInt(sel.value || "0", 10), h = "";
+    for (var i = 1; i <= n; i++)
+      h += '<label for="cn'+i+'">اسم المرافق '+i+'</label>' +
+           '<input class="inp" id="cn'+i+'" autocomplete="off">';
+    document.getElementById("cpn").innerHTML = h;
+  };
 }
 
 function submitLabel(){
@@ -220,6 +274,18 @@ function doneHtml(){
     '<div class="code">' + esc(d.code) + '</div><div id="qr"></div></div>' +
     '<div class="sub">احفظ لقطة شاشة لهذا الرمز واعرضه عند البوابة</div>' +
     '<a class="ghost" href="badge.html?code=' + encodeURIComponent(d.code) + '">عرض البطاقة وطباعتها</a>' +
+    ((d.party && d.party.length) ?
+      '<div style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">' +
+      '<div class="sub" style="margin-bottom:9px">رموز المرافقين — لكل واحد رمزه</div>' +
+      d.party.map(function(p){
+        return '<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;' +
+          'border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:7px">' +
+          '<b style="font-size:14px">' + esc(p.name) + '</b>' +
+          '<a class="ghost" style="margin:0;padding:5px 11px;font-size:12.5px" ' +
+          'href="badge.html?code=' + encodeURIComponent(p.code) + '">' +
+          '<span style="font-family:ui-monospace,monospace;direction:ltr">' + esc(p.code) + '</span>' +
+          '</a></div>';
+      }).join("") + '</div>' : "") +
     '</div>';
 }
 
@@ -238,6 +304,7 @@ function render(){
   }
   app.innerHTML = headHtml() + ticketsHtml() + formHtml();
   bind();
+  wireCompanions();
 }
 
 function drawQR(code){
@@ -264,12 +331,21 @@ function bind(){
 }
 
 function snapshot(){
-  return { nm:val("#nm"), ph:val("#phv"), em:val("#em"), co:val("#co"), jt:val("#jt") };
+  var n = parseInt(val("#cp") || "0", 10), names = [];
+  for (var i = 1; i <= n; i++){ var v = val("#cn"+i).trim(); if (v) names.push(v); }
+  return { nm:val("#nm"), ph:val("#phv"), em:val("#em"), co:val("#co"),
+           jt:val("#jt"), cn:val("#cn"), party:n, names:names };
 }
 function restore(f){
   if (!f) return;
   set("#nm", f.nm); set("#phv", f.ph); set("#em", f.em);
-  set("#co", f.co); set("#jt", f.jt);
+  set("#co", f.co); set("#jt", f.jt); set("#cn", f.cn);
+  if (f.party){
+    set("#cp", String(f.party));
+    wireCompanions();
+    var sel = $("#cp"); if (sel) sel.onchange();
+    (f.names||[]).forEach(function(v,i){ set("#cn"+(i+1), v); });
+  }
 }
 function val(s){ var el = $(s); return el ? el.value : ""; }
 function set(s, v){ var el = $(s); if (el && v) el.value = v; }
@@ -307,14 +383,14 @@ async function submit(ev){
       var r = await sb.rpc("create_order", {
         p_event_slug: SLUG, p_ticket_code: S.pick,
         p_name: form.nm, p_phone: form.ph, p_email: form.em,
-        p_company: form.co, p_title: form.jt, p_country: null, p_qty: 1
+        p_company: form.co, p_title: form.jt, p_country: form.cn || null, p_qty: 1
       });
       res = r.data; err = r.error;
     } else {
       var r2 = await sb.rpc("register_visitor", {
         p_event_slug: SLUG, p_name: form.nm, p_phone: form.ph,
         p_category: "visitor", p_email: form.em,
-        p_company: form.co, p_title: form.jt, p_country: null
+        p_company: form.co, p_title: form.jt, p_country: form.cn || null
       });
       res = r2.data; err = r2.error;
     }
@@ -332,7 +408,15 @@ async function submit(ev){
 
     // مجانية أو تسجيل بلا تذاكر -> الرمز جاهز
     if (res.code){
-      S.done = { code: res.code, name: res.name || form.nm, ticket: res.ticket || "" };
+      var party = [];
+      if (form.names && form.names.length){
+        var cr = await sb.rpc("add_companions", {
+          p_event_slug: SLUG, p_code: res.code, p_names: form.names
+        });
+        if (cr.data && cr.data.ok) party = cr.data.companions || [];
+      }
+      S.done = { code: res.code, name: res.name || form.nm,
+                 ticket: res.ticket || "", party: party };
       S.busy = false; render(); return;
     }
 
